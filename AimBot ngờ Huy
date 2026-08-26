@@ -1,0 +1,223 @@
+-- Minhhuy98k14 Script X NgDaoMinNhat - Auto Aim Target with Blue Fire UI
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+local aimEnabled = false
+local target = nil
+local aimRadius = 100
+local smoothness = 0.2
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoAimGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Blue Fire gradient colors
+local primaryColor = Color3.fromRGB(0, 150, 255)
+local secondaryColor = Color3.fromRGB(0, 80, 255)
+local glowColor = Color3.fromRGB(0, 200, 255)
+local darkBg = Color3.fromRGB(10, 10, 30)
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 240, 0, 160)
+frame.Position = UDim2.new(0.5, -120, 0.7, 0)
+frame.BackgroundColor3 = darkBg
+frame.BackgroundTransparency = 0.15
+frame.BorderSizePixel = 2
+frame.BorderColor3 = primaryColor
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local glowBorder = Instance.new("Frame")
+glowBorder.Size = UDim2.new(1, 4, 1, 4)
+glowBorder.Position = UDim2.new(-0.01, 0, -0.01, 0)
+glowBorder.BackgroundColor3 = glowColor
+glowBorder.BackgroundTransparency = 0.8
+glowBorder.BorderSizePixel = 0
+glowBorder.Parent = frame
+local glowCorner = Instance.new("UICorner")
+glowCorner.CornerRadius = UDim.new(0, 14)
+glowCorner.Parent = glowBorder
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0, 220, 0, 20)
+title.Position = UDim2.new(0.5, -110, 0, 5)
+title.Text = "🔥 AUTO AIM 🔥"
+title.TextColor3 = glowColor
+title.BackgroundTransparency = 1
+title.TextScaled = true
+title.Font = Enum.Font.SourceSansBold
+title.Parent = frame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 200, 0, 35)
+toggleBtn.Position = UDim2.new(0.5, -100, 0, 28)
+toggleBtn.Text = "AUTO AIM: OFF"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
+toggleBtn.TextScaled = true
+toggleBtn.BorderSizePixel = 1
+toggleBtn.BorderColor3 = primaryColor
+toggleBtn.Parent = frame
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleBtn
+
+local rangeLabel = Instance.new("TextLabel")
+rangeLabel.Size = UDim2.new(0, 200, 0, 20)
+rangeLabel.Position = UDim2.new(0.5, -100, 0, 67)
+rangeLabel.Text = "📏 Range: " .. tostring(aimRadius)
+rangeLabel.BackgroundTransparency = 1
+rangeLabel.TextColor3 = glowColor
+rangeLabel.TextScaled = true
+rangeLabel.Font = Enum.Font.SourceSansBold
+rangeLabel.Parent = frame
+
+local rangeDec = Instance.new("TextButton")
+rangeDec.Size = UDim2.new(0, 60, 0, 30)
+rangeDec.Position = UDim2.new(0.5, -100, 0, 90)
+rangeDec.Text = "-10"
+rangeDec.BackgroundColor3 = Color3.fromRGB(0, 60, 120)
+rangeDec.TextColor3 = glowColor
+rangeDec.TextScaled = true
+rangeDec.BorderSizePixel = 1
+rangeDec.BorderColor3 = primaryColor
+rangeDec.Parent = frame
+local decCorner = Instance.new("UICorner")
+decCorner.CornerRadius = UDim.new(0, 6)
+decCorner.Parent = rangeDec
+
+local rangeInc = Instance.new("TextButton")
+rangeInc.Size = UDim2.new(0, 60, 0, 30)
+rangeInc.Position = UDim2.new(0.5, 40, 0, 90)
+rangeInc.Text = "+10"
+rangeInc.BackgroundColor3 = Color3.fromRGB(0, 60, 120)
+rangeInc.TextColor3 = glowColor
+rangeInc.TextScaled = true
+rangeInc.BorderSizePixel = 1
+rangeInc.BorderColor3 = primaryColor
+rangeInc.Parent = frame
+local incCorner = Instance.new("UICorner")
+incCorner.CornerRadius = UDim.new(0, 6)
+incCorner.Parent = rangeInc
+
+local rangeInput = Instance.new("TextBox")
+rangeInput.Size = UDim2.new(0, 60, 0, 25)
+rangeInput.Position = UDim2.new(0.5, -30, 0, 125)
+rangeInput.Text = tostring(aimRadius)
+rangeInput.BackgroundColor3 = Color3.fromRGB(20, 20, 50)
+rangeInput.TextColor3 = glowColor
+rangeInput.BorderSizePixel = 1
+rangeInput.BorderColor3 = primaryColor
+rangeInput.PlaceholderText = "Set"
+rangeInput.Parent = frame
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 6)
+inputCorner.Parent = rangeInput
+
+local function getValidTargets()
+    local targets = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player then
+            local char = plr.Character
+            if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    table.insert(targets, root)
+                end
+            end
+        end
+    end
+    return targets
+end
+
+local function getClosestTarget()
+    local rootPos = camera.CFrame.Position
+    local closest = nil
+    local closestDist = aimRadius
+    for _, targetPart in ipairs(getValidTargets()) do
+        local dist = (targetPart.Position - rootPos).Magnitude
+        if dist < closestDist then
+            closestDist = dist
+            closest = targetPart
+        end
+    end
+    return closest
+end
+
+local function aimAtTarget(targetPart)
+    if not targetPart then return end
+    local targetPos = targetPart.Position + Vector3.new(0, 1.5, 0)
+    local currentCF = camera.CFrame
+    local lookAt = CFrame.lookAt(currentCF.Position, targetPos)
+    local newCF = currentCF:Lerp(lookAt, smoothness)
+    camera.CFrame = newCF
+end
+
+local function toggleAim()
+    aimEnabled = not aimEnabled
+    if aimEnabled then
+        toggleBtn.Text = "🔥 AUTO AIM: ON 🔥"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 0)
+        toggleBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
+    else
+        toggleBtn.Text = "AUTO AIM: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        toggleBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
+        target = nil
+    end
+end
+
+local function setRange(newRange)
+    aimRadius = math.clamp(newRange, 10, 500)
+    rangeLabel.Text = "📏 Range: " .. tostring(aimRadius)
+    rangeInput.Text = tostring(aimRadius)
+end
+
+toggleBtn.MouseButton1Click:Connect(toggleAim)
+
+rangeDec.MouseButton1Click:Connect(function() setRange(aimRadius - 10) end)
+rangeInc.MouseButton1Click:Connect(function() setRange(aimRadius + 10) end)
+
+rangeInput.FocusLost:Connect(function()
+    local val = tonumber(rangeInput.Text)
+    if val and val > 0 then
+        setRange(val)
+    else
+        rangeInput.Text = tostring(aimRadius)
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        toggleAim()
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not aimEnabled then return end
+    target = getClosestTarget()
+    if target then
+        aimAtTarget(target)
+    end
+end)
+
+player.CharacterAdded:Connect(function()
+    if aimEnabled then
+        aimEnabled = false
+        toggleBtn.Text = "AUTO AIM: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        toggleBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
+    end
+end)
