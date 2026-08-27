@@ -1,0 +1,264 @@
+-- Tải thư viện Rayfield UI
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Biến toàn cục để điều khiển tính năng
+_G.InfJump = false
+_G.Invisibility = false
+_G.ESPEnabled = false
+_G.AimTarget = false
+_G.FlingTarget = nil
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Tạo cửa sổ chính (Window) với chủ đề Galaxy
+local Window = Rayfield:CreateWindow({
+   Name = "🪐 Fling Cheat NgHuy X Dbo Dzai",
+   LoadingTitle = "Đang khởi động NgHuy X Dbo Dzai...",
+   LoadingSubtitle = "Hệ thống vũ trụ tùy chỉnh",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "NgHuyDboConfig",
+      FileName = "Settings"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinv",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   Theme = "Amethyst"
+})
+
+--------------------------------------------------------------------------------
+-- TẠO CÁC TAB
+--------------------------------------------------------------------------------
+local MainTab = Window:CreateTab("Main", "home")
+local VisualTab = Window:CreateTab("Visuals", "eye")
+local CombatTab = Window:CreateTab("Combat", "crosshair")
+local TrollTab = Window:CreateTab("Troll", "smile")
+
+--------------------------------------------------------------------------------
+-- 1. TAB MAIN (TỐC ĐỘ, NHẢY, TÀNG HÌNH)
+--------------------------------------------------------------------------------
+MainTab:CreateSection("Cải thiện nhân vật")
+
+-- Tăng tốc độ chạy
+MainTab:CreateSlider({
+   Name = "Tốc độ chạy (WalkSpeed)",
+   Range = {16, 300},
+   Increment = 1,
+   CurrentValue = 16,
+   Flag = "SpeedSlider",
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+-- Infinite Jump (Vô cực nhảy)
+MainTab:CreateToggle({
+   Name = "Vô cực nhảy (Infinite Jump)",
+   CurrentValue = false,
+   Flag = "InfJumpToggle",
+   Callback = function(Value)
+      _G.InfJump = Value
+   end,
+})
+
+UserInputService.JumpRequest:Connect(function()
+   if _G.InfJump then
+      local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid:ChangeState("Jumping")
+      end
+   end
+end)
+
+MainTab:CreateSection("Đặc biệt")
+
+-- Tàng hình (Invisibility)
+MainTab:CreateToggle({
+   Name = "Tàng hình (Invisibility)",
+   CurrentValue = false,
+   Flag = "InvisToggle",
+   Callback = function(Value)
+      _G.Invisibility = Value
+      local char = LocalPlayer.Character
+      if char and char:FindFirstChild("HumanoidRootPart") then
+         for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+               part.Transparency = _G.Invisibility and 1 or 0
+            end
+         end
+      end
+      Rayfield:Notify({Title = "Tàng hình", Content = Value and "Đã bật tàng hình!" or "Đã tắt tàng hình!", Duration = 2})
+   end,
+})
+
+--------------------------------------------------------------------------------
+-- 2. TAB VISUALS (ESP)
+--------------------------------------------------------------------------------
+VisualTab:CreateSection("ESP Người chơi")
+
+VisualTab:CreateToggle({
+   Name = "Bật ESP Highlight (Xuyên tường)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(Value)
+      _G.ESPEnabled = Value
+      
+      -- Xóa ESP cũ nếu có
+      for _, p in pairs(Players:GetPlayers()) do
+         if p ~= LocalPlayer and p.Character then
+            local existingHighlight = p.Character:FindFirstChild("RayfieldESP")
+            if existingHighlight then
+               existingHighlight:Destroy()
+            end
+         end
+      end
+
+      -- Tạo ESP mới
+      if _G.ESPEnabled then
+         RunService.RenderStepped:Connect(function()
+            if not _G.ESPEnabled then return end
+            for _, p in pairs(Players:GetPlayers()) do
+               if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("RayfieldESP") then
+                  local hl = Instance.new("Highlight")
+                  hl.Name = "RayfieldESP"
+                  hl.Adornee = p.Character
+                  hl.FillColor = Color3.fromRGB(138, 43, 226)
+                  hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                  hl.FillTransparency = 0.4
+                  hl.Parent = p.Character
+               end
+            end
+         end)
+         Rayfield:Notify({Title = "ESP Galaxy", Content = "Đã bật ESP xuyên tường!", Duration = 2})
+      else
+         Rayfield:Notify({Title = "ESP Galaxy", Content = "Đã tắt ESP!", Duration = 2})
+      end
+   end,
+})
+
+--------------------------------------------------------------------------------
+-- 3. TAB COMBAT (AIM TARGET)
+--------------------------------------------------------------------------------
+CombatTab:CreateSection("Hệ thống ngắm mục tiêu")
+
+CombatTab:CreateToggle({
+   Name = "Bật Aim Target (Khóa tâm vào đầu đối thủ)",
+   CurrentValue = false,
+   Flag = "AimToggle",
+   Callback = function(Value)
+      _G.AimTarget = Value
+      Rayfield:Notify({Title = "Aim Target", Content = Value and "Đã bật Aim Target!" or "Đã tắt Aim Target!", Duration = 2})
+   end,
+})
+
+-- Vòng lặp Aim Target
+RunService.RenderStepped:Connect(function()
+   if _G.AimTarget then
+      local camera = workspace.CurrentCamera
+      local closestPlayer = nil
+      local shortestDistance = math.huge
+
+      for _, p in pairs(Players:GetPlayers()) do
+         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+               local pos, onScreen = camera:WorldToViewportPoint(p.Character.Head.Position)
+               if onScreen then
+                  local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
+                  if dist < shortestDistance then
+                     shortestDistance = dist
+                     closestPlayer = p
+                  end
+               end
+            end
+         end
+      end
+
+      if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+         camera.CFrame = CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position)
+      end
+   end
+end)
+
+--------------------------------------------------------------------------------
+-- 4. TAB TROLL (FLING PEOPLE)
+--------------------------------------------------------------------------------
+TrollTab:CreateSection("Công cụ Troll Vũ Trụ")
+
+local playerList = {}
+for _, p in pairs(Players:GetPlayers()) do
+   if p ~= LocalPlayer then
+      table.insert(playerList, p.Name)
+   end
+end
+
+Players.PlayerAdded:Connect(function(p)
+   table.insert(playerList, p.Name)
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+   for i, v in ipairs(playerList) do
+      if v == p.Name then
+         table.remove(playerList, i)
+      end
+   end
+end)
+
+local PlayerDropdown = TrollTab:CreateDropdown({
+   Name = "Chọn mục tiêu Fling",
+   Options = playerList,
+   CurrentOption = "",
+   Flag = "FlingDropdown",
+   Callback = function(Option)
+      _G.FlingTarget = Option
+   end,
+})
+
+TrollTab:CreateButton({
+   Name = "Fling Mục Tiêu Đã Chọn",
+   Callback = function()
+      local targetPlayer = Players:FindFirstChild(_G.FlingTarget)
+      if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+         local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+         local targetRoot = targetPlayer.Character.HumanoidRootPart
+         
+         if localRoot then
+            local bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bv.Velocity = Vector3.new(99999, 99999, 99999)
+            bv.Parent = localRoot
+
+            local startTime = tick()
+            local connection
+            connection = RunService.Stepped:Connect(function()
+               if targetRoot and localRoot then
+                  localRoot.CFrame = targetRoot.CFrame
+                  localRoot.Velocity = Vector3.new(50000, 50000, 50000)
+               end
+               if tick() - startTime > 1.5 then
+                  connection:Disconnect()
+                  bv:Destroy()
+               end
+            end)
+            
+            Rayfield:Notify({Title = "Fling Galaxy", Content = "Đã phóng " .. _G.FlingTarget .." bay vào vũ trụ!", Duration = 3})
+         end
+      else
+         Rayfield:Notify({Title = "Lỗi", Content = "Hãy chọn một mục tiêu hợp lệ từ danh sách!", Duration = 3})
+      end
+   end,
+})
+
+Rayfield:Notify({
+   Title = "🌌 NgHuy X Dbo Đã Sẵn Sàng!",
+   Content = "Đã tải thành công script Fling Cheat NgHuy X Dbo Dzai.",
+   Duration = 5,
+})
