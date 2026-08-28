@@ -1,0 +1,423 @@
+--[[\n  Protected by AI Collaborator - NQD Cheat Ultimate Edition\n  (Đã fix lỗi cú pháp executor & tàng hình không lộ)\n]]--
+local _0x1a = string.char;local _0x2b = table.concat;local _0x3c = math.random;local _0x4d=loadstring;
+local _0x5e={0x4e,0x51,0x44,0x43,0x68,0x65,0x61,0x74};
+local function _0x6f(...) local _0x70={...};return _0x4d(_0x70[1])(); end
+_0x6f([[
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+_G.InfJump = false
+_G.Invisibility = false
+_G.ESPEnabled = false
+_G.AimTarget = false
+_G.AimRadius = 150
+_G.AimSmoothness = 0.15
+_G.FlingTarget = nil
+_G.InstantGrab = false
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+
+pcall(function()
+   if getgenv then
+      getgenv().secure_mode = true
+   end
+end)
+
+local Window = Rayfield:CreateWindow({
+   Name = "👑 NQD Cheat - Ultimate Pro Edition",
+   LoadingTitle = "Đang khởi tạo NQD Cheat...",
+   LoadingSubtitle = "Hệ thống đa năng cho mọi tựa game",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "NQDCheatConfig",
+      FileName = "NQD_Settings_Universal"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinv",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   Theme = "Amethyst"
+})
+
+local MainTab = Window:CreateTab("Main", "home")
+local VisualTab = Window:CreateTab("Visuals", "eye")
+local CombatTab = Window:CreateTab("Combat", "crosshair")
+local TrollTab = Window:CreateTab("Troll", "smile")
+
+-- ==================== TAB MAIN ====================
+MainTab:CreateSection("Cải thiện nhân vật & Di chuyển")
+
+local WalkSpeedValue = 16
+MainTab:CreateSlider({
+   Name = "Tốc độ chạy (WalkSpeed)",
+   Range = {16, 300},
+   Increment = 1,
+   CurrentValue = 16,
+   Flag = "NQD_SpeedSlider",
+   Callback = function(Value)
+      WalkSpeedValue = Value
+   end,
+})
+
+RunService.RenderStepped:Connect(function()
+   pcall(function()
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         if WalkSpeedValue > 16 then
+            LocalPlayer.Character.Humanoid.WalkSpeed = WalkSpeedValue
+         end
+      end
+   end)
+end)
+
+MainTab:CreateToggle({
+   Name = "Vô cực nhảy cao (Infinite Jump)",
+   CurrentValue = false,
+   Flag = "NQD_InfJumpToggle",
+   Callback = function(Value)
+      _G.InfJump = Value
+   end,
+})
+
+UserInputService.JumpRequest:Connect(function()
+   if _G.InfJump then
+      pcall(function()
+         local character = LocalPlayer.Character
+         if character and character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = character.HumanoidRootPart
+            rootPart.AssemblyLinearVelocity = Vector3.new(rootPart.AssemblyLinearVelocity.X, 65, rootPart.AssemblyLinearVelocity.Z)
+         end
+      end)
+   end
+end)
+
+MainTab:CreateSection("Tương tác & Nhặt đồ")
+
+MainTab:CreateToggle({
+   Name = "Nhặt đồ tức thì (Instant Grab / Prompt)",
+   CurrentValue = false,
+   Flag = "NQD_InstantGrabToggle",
+   Callback = function(Value)
+      _G.InstantGrab = Value
+      Rayfield:Notify({Title = "NQD Instant Grab", Content = Value and "Đã bật nhặt đồ tức thì!" or "Đã tắt nhặt đồ tức thì!", Duration = 2})
+   end,
+})
+
+RunService.Stepped:Connect(function()
+   if _G.InstantGrab then
+      pcall(function()
+         for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("ProximityPrompt") then
+               v.HoldDuration = 0
+               if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                  local rootPart = LocalPlayer.Character.HumanoidRootPart
+                  local parentPart = v.Parent
+                  if parentPart and parentPart:IsA("BasePart") then
+                     if (rootPart.Position - parentPart.Position).Magnitude <= v.MaxActivationDistance then
+                        fireproximityprompt(v)
+                     end
+                  end
+               end
+            end
+         end
+      end)
+   end
+end)
+
+MainTab:CreateSection("Đặc biệt")
+
+MainTab:CreateToggle({
+   Name = "Tàng hình nhân vật (Fixed & Không lộ)",
+   CurrentValue = false,
+   Flag = "NQD_InvisToggle",
+   Callback = function(Value)
+      _G.Invisibility = Value
+      pcall(function()
+         local char = LocalPlayer.Character
+         if char then
+            for _, part in pairs(char:GetDescendants()) do
+               if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") then
+                  part.Transparency = _G.Invisibility and 1 or 0
+                  if part:IsA("BasePart") then
+                     part.CanCollide = not _G.Invisibility
+                  end
+               elseif part:IsA("Accessory") then
+                  local handle = part:FindFirstChild("Handle")
+                  if handle then
+                     handle.Transparency = _G.Invisibility and 1 or 0
+                     handle.CanCollide = not _G.Invisibility
+                  end
+               end
+            end
+         end
+      end)
+      Rayfield:Notify({Title = "NQD Tàng hình", Content = Value and "Đã bật tàng hình hoàn toàn!" or "Đã hiện lại nhân vật!", Duration = 2})
+   end,
+})
+
+RunService.Stepped:Connect(function()
+   if _G.Invisibility then
+      pcall(function()
+         local char = LocalPlayer.Character
+         if char then
+            for _, part in pairs(char:GetDescendants()) do
+               if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") then
+                  if part.Transparency ~= 1 then
+                     part.Transparency = 1
+                  end
+                  if part:IsA("BasePart") and part.CanCollide then
+                     part.CanCollide = false
+                  end
+               elseif part:IsA("Accessory") then
+                  local handle = part:FindFirstChild("Handle")
+                  if handle then
+                     if handle.Transparency ~= 1 then
+                        handle.Transparency = 1
+                     end
+                     if handle.CanCollide then
+                        handle.CanCollide = false
+                     end
+                  end
+               end
+            end
+         end
+      end)
+   end
+end)
+
+-- ==================== TAB VISUALS ====================
+VisualTab:CreateSection("ESP Hiển thị Toàn Diện")
+
+RunService.RenderStepped:Connect(function()
+   pcall(function()
+      for _, p in pairs(Players:GetPlayers()) do
+         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            local char = p.Character
+            local head = char.Head
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            
+            if _G.ESPEnabled then
+               if not char:FindFirstChild("NQDESP_HL") then
+                  local hl = Instance.new("Highlight")
+                  hl.Name = "NQDESP_HL"
+                  hl.Adornee = char
+                  hl.FillColor = Color3.fromRGB(138, 43, 226)
+                  hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                  hl.FillTransparency = 0.4
+                  hl.Parent = char
+               end
+
+               if not head:FindFirstChild("NQDESP_UI") and humanoid then
+                  local bg = Instance.new("BillboardGui")
+                  bg.Name = "NQDESP_UI"
+                  bg.Size = UDim2.new(0, 200, 0, 50)
+                  bg.StudsOffset = Vector3.new(0, 2.5, 0)
+                  bg.AlwaysOnTop = true
+                  bg.Parent = head
+
+                  local txt = Instance.new("TextLabel")
+                  txt.Name = "InfoText"
+                  txt.Size = UDim2.new(1, 0, 1, 0)
+                  txt.BackgroundTransparency = 1
+                  txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+                  txt.TextStrokeTransparency = 0
+                  txt.TextSize = 14
+                  txt.Font = Enum.Font.SourceSansBold
+                  txt.Parent = bg
+               end
+
+               local ui = head:FindFirstChild("NQDESP_UI")
+               if ui and humanoid then
+                  local txt = ui:FindFirstChild("InfoText")
+                  if txt then
+                     txt.Text = "[" .. p.Name .. "]\nMáu: " .. math.floor(humanoid.Health) .. "/" .. math.floor(humanoid.MaxHealth)
+                  end
+               end
+            else
+               if char:FindFirstChild("NQDESP_HL") then char.NQDESP_HL:Destroy() end
+               if head:FindFirstChild("NQDESP_UI") then head.NQDESP_UI:Destroy() end
+            end
+         end
+      end
+   end)
+end)
+
+VisualTab:CreateToggle({
+   Name = "Bật ESP (Tên, Máu & Highlight)",
+   CurrentValue = false,
+   Flag = "NQD_ESPToggle",
+   Callback = function(Value)
+      _G.ESPEnabled = Value
+      Rayfield:Notify({Title = "NQD ESP", Content = Value and "Đã bật ESP Pro!" or "Đã tắt ESP!", Duration = 2})
+   end,
+})
+
+VisualTab:CreateSection("Tối ưu hóa (Fix Lag / FPS Boost)")
+
+VisualTab:CreateButton({
+   Name = "Xóa Đồ Hoạ / Giảm Lag Tuyệt Đối",
+   Callback = function()
+      pcall(function()
+         Lighting.GlobalShadows = false
+         Lighting.Brightness = 2
+         for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+               v.Material = Enum.Material.SmoothPlastic
+               v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+               v.Transparency = 1
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
+               v:Destroy()
+            end
+         end
+      end)
+      Rayfield:Notify({Title = "NQD FPS Boost", Content = "Đã tối ưu hóa đồ họa giảm lag thành công!", Duration = 3})
+   end,
+})
+
+-- ==================== TAB COMBAT ====================
+CombatTab:CreateSection("Hệ thống ngắm mục tiêu (Aim Target)")
+
+CombatTab:CreateToggle({
+   Name = "Bật Aim Target (Khóa tâm)",
+   CurrentValue = false,
+   Flag = "NQD_AimToggle",
+   Callback = function(Value)
+      _G.AimTarget = Value
+      Rayfield:Notify({Title = "NQD Aim Target", Content = Value and "Đã bật Aim Target chuẩn xác!" or "Đã tắt Aim Target!", Duration = 2})
+   end,
+})
+
+CombatTab:CreateSlider({
+   Name = "Tầm với Aim (Radius)",
+   Range = {50, 500},
+   Increment = 25,
+   CurrentValue = 150,
+   Flag = "NQD_AimRadiusSlider",
+   Callback = function(Value)
+      _G.AimRadius = Value
+   end,
+})
+
+CombatTab:CreateSlider({
+   Name = "Độ khóa cứng (Smoothness)",
+   Range = {0.05, 1.0},
+   Increment = 0.05,
+   CurrentValue = 0.15,
+   Flag = "NQD_AimSmoothSlider",
+   Callback = function(Value)
+      _G.AimSmoothness = Value
+   end,
+})
+
+RunService.RenderStepped:Connect(function()
+   if _G.AimTarget then
+      pcall(function()
+         local camera = Workspace.CurrentCamera
+         local closestPlayer = nil
+         local shortestDistance = _G.AimRadius
+
+         for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+               local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+               if humanoid and humanoid.Health > 0 then
+                  local pos, onScreen = camera:WorldToViewportPoint(p.Character.Head.Position)
+                  if onScreen then
+                     local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
+                     if dist < shortestDistance then
+                        shortestDistance = dist
+                        closestPlayer = p
+                     end
+                  end
+               end
+            end
+         end
+
+         if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position), _G.AimSmoothness)
+         end
+      end)
+   end
+end)
+
+-- ==================== TAB TROLL (Dùng chung cho mọi game Roblox) ====================
+TrollTab:CreateSection("Công cụ Fling Mục Tiêu (Dùng được cho mọi game)")
+
+local playerList = {}
+for _, p in pairs(Players:GetPlayers()) do
+   if p ~= LocalPlayer then
+      table.insert(playerList, p.Name)
+   end
+end
+
+Players.PlayerAdded:Connect(function(p)
+   table.insert(playerList, p.Name)
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+   for i, v in ipairs(playerList) do
+      if v == p.Name then
+         table.remove(playerList, i)
+      end
+   end
+end)
+
+local PlayerDropdown = TrollTab:CreateDropdown({
+   Name = "Chọn mục tiêu Fling",
+   Options = playerList,
+   CurrentOption = "",
+   Flag = "NQD_FlingDropdown",
+   Callback = function(Option)
+      _G.FlingTarget = Option
+   end,
+})
+
+TrollTab:CreateButton({
+   Name = "Thực hiện Fling Mục Tiêu",
+   Callback = function()
+      pcall(function()
+         local targetPlayer = Players:FindFirstChild(_G.FlingTarget)
+         if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local targetRoot = targetPlayer.Character.HumanoidRootPart
+            
+            if localRoot then
+               local bv = Instance.new("BodyVelocity")
+               bv.Name = "NQDFlingBV"
+               bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+               bv.Velocity = Vector3.new(99999, 99999, 99999)
+               bv.Parent = localRoot
+
+               local startTime = tick()
+               local connection
+               connection = RunService.Stepped:Connect(function()
+                  if targetRoot and localRoot then
+                     localRoot.CFrame = targetRoot.CFrame
+                     localRoot.Velocity = Vector3.new(50000, 50000, 50000)
+                  end
+                  if tick() - startTime > 1.5 then
+                     connection:Disconnect()
+                     if bv then bv:Destroy() end
+                  end
+               end)
+               
+               Rayfield:Notify({Title = "NQD Fling", Content = "Đã phóng " .. tostring(_G.FlingTarget) .." bay đi thành công!", Duration = 3})
+            end
+         else
+            Rayfield:Notify({Title = "Lỗi", Content = "Hãy chọn một mục tiêu hợp lệ từ danh sách trước!", Duration = 3})
+         end
+      end)
+   end,
+})
+
+Rayfield:Notify({
+   Title = "👑 NQD Cheat Đã Sẵn Sàng!",
+   Content = "Đã fix hoàn toàn lỗi executor!",
+   Duration = 5,
+})
+]])
